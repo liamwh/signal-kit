@@ -1,0 +1,61 @@
+default_stages: [pre-commit]
+default_install_hook_types: [pre-commit]
+fail_fast: false
+
+repos:
+  - repo: local
+    hooks:
+      # ripsecrets: Secret detection
+      - id: ripsecrets
+        name: Scan for secrets
+        entry: ripsecrets --strict-ignore
+        language: system
+        pass_filenames: true
+        always_run: true
+        priority: 0
+
+      # check-cargo-lock: Verify Cargo.lock is consistent
+      - id: check-cargo-lock
+        name: Check Cargo.lock is consistent
+        entry: >
+          bash -c '
+            echo "Checking Cargo.lock consistency...";
+            if cargo metadata --locked --format-version 1 >/dev/null 2>&1; then
+              echo "Cargo.lock is consistent";
+              exit 0;
+            fi
+            echo "Cargo.lock is out of sync with Cargo.toml";
+            echo "Fix: cargo generate-lockfile && git add Cargo.lock";
+            exit 1;
+          '
+        language: system
+        pass_filenames: false
+        files: '(^|/)Cargo\.toml$|(^|/)Cargo\.lock$'
+        priority: 5
+
+      # format-rust: Auto-format Rust code with cargo fmt
+      - id: format-rust
+        name: Format Rust code
+        entry: >
+          bash -c '
+            RUST_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep "\.rs$" || true);
+            if [ -n "$RUST_FILES" ]; then
+              echo "Formatting Rust code with cargo fmt...";
+              cargo fmt --all;
+              git diff --cached --name-only --diff-filter=ACM | grep "\.rs$" | xargs -r git add;
+              echo "Rust code formatted and re-staged";
+            fi
+          '
+        language: system
+        pass_filenames: false
+        files: '\.rs$'
+        priority: 5
+
+      # clippy: Lint Rust code
+      - id: clippy
+        name: Lint Rust code with clippy
+        entry: cargo clippy --workspace --all-targets -- -D warnings
+        language: system
+        pass_filenames: false
+        files: \.(rs|toml)$
+        priority: 6

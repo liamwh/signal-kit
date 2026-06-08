@@ -1,0 +1,37 @@
+[core]
+    # Prevent line ending issues between Windows/Mac/Linux
+    autocrlf = input     # use "true" on Windows, "input" on Mac/Linux
+[push]
+	autoSetupRebase = always
+	autoSetupRemote = true
+    updateRefs = true
+	default = simple
+    useForceIfIncludes = true
+[pull]
+    rebase = true
+[rebase]
+    autosquash = true
+    # Auto stash/unstash changes when rebasing
+    autoStash = true
+[rerere]
+    # Remember and re-use manual conflict resolutions
+    enabled = true
+    autoupdate = true
+[fetch]
+    # Automatically prune deleted remote branches
+    prune = true
+[branch]
+    # Auto setup rebase for new branches
+    autosetuprebase = always
+[merge]
+    # Add clear markers in conflict files
+    conflictstyle = diff3
+    # Always create a merge commit
+    ff = false
+    # Include merged branch commits in commit message
+    log = true
+[commit]
+    ; gpgsign = true
+    verbose = true
+[color]
+	ui = true

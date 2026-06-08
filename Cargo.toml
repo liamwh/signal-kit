@@ -1,0 +1,85 @@
+[workspace]
+members = [
+    "crates/*"
+]
+resolver = "2"
+exclude = [
+    "~/.cargo-target/*",
+]
+
+[workspace.dependencies]
+axum = { version = "^0.8", features = ["macros", "tokio", "http1", "http2"] }
+heck = { version = "^0.5" }
+http = "^1"
+http-body = "^1"
+# OpenTelemetry crates use ~ versions to allow for patch version changes instead of ^ versions which allow for minor version changes
+opentelemetry = { version = "~0.31", features = [
+    "logs",
+    "trace",
+    "metrics",
+    "tracing",
+] }
+tempfile = { version = "3" }
+opentelemetry-appender-tracing = { version = "~0.31" }
+opentelemetry-otlp = { version = "~0.31", default-features = false, features = ["tokio"] }
+opentelemetry_sdk = { version = "~0.31", features = [
+    "rt-tokio",
+    "logs",
+    "metrics",
+    "trace",
+    "experimental_trace_batch_span_processor_with_async_runtime",
+    "experimental_metrics_periodicreader_with_async_runtime",
+    "experimental_logs_batch_log_processor_with_async_runtime",
+] }
+opentelemetry-semantic-conventions = { version = "~0.31", features = [
+    "semconv_experimental",
+] }
+opentelemetry-stdout = { version = "~0.31", features = ["trace", "metrics"] }
+parking_lot = { version = "^0.12" }
+sysinfo = "^0.34.2"
+test-log = "^0.2"
+tokio = "^1"
+tower = "^0.5.2"
+tracing = { version = "~0.1", features = ["log"] }
+tracing-appender = { version = "^0.2" }
+tracing-core = { version = "^0.1"}
+tracing-error = "^0.2"
+tracing-opentelemetry = "^0.32"  # NOTE: as of 12/18/25, this should be 0.1.0 versions ahead of other opentelemetry crate versions
+tracing-subscriber = { version = "~0.3", features = ["registry", "smallvec", "tracing-log", "ansi", "env-filter", "fmt", "json"] }
+ulid = { version = "^1", features = ["serde"] }
+serde = { version = "^1", features = ["derive"] }
+serde_json = "^1"
+thiserror = "~2.0"
+otel-init = { path = "crates/otel-init" }
+
+[workspace.lints.rust]
+# Salux preference lints
+missing_docs = { level = "warn", priority = 1 }
+
+[workspace.lints.clippy]
+# Salux preference lints
+wildcard_imports = { level = "allow", priority = 2 }
+future_not_send = { level = "allow", priority = 2 }
+significant-drop-tightening = { level = "allow", priority = 2 }
+match_bool = { level = "allow", priority = 2 }
+
+# Best practices, these will fail during the pipeline so fix before merging
+uninlined_format_args = { level = "warn", priority = 2 }
+module_name_repetitions = { level = "allow", priority = 2 }
+
+# Lint groups
+correctness = { level = "deny", priority = 1 }
+perf = { level = "warn", priority = 1 }
+style = { level = "warn", priority = 1 }
+complexity = { level = "warn", priority = 1 }
+suspicious = { level = "warn", priority = 1 }
+
+# Allow nursery & pedantic lints
+pedantic = { level = "allow", priority = 3 }
+nursery = { level = "allow", priority = 3 }
+
+[workspace.metadata.cargo-shear]
+ignored = ["prost", "prost-types", "cloudevents-sdk", "tonic-prost"]
+
+[workspace.metadata.cargo-machete]
+ignored = ["prost", "prost-types", "cloudevents-sdk", "tonic-prost"]

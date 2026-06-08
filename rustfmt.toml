@@ -1,0 +1,13 @@
+# NOTE: Some of these options are commented out as nightly increases dev compilation time, enable them when they land in stable
+edition = "2024"
+style_edition = "2024"
+
+# group_imports = "StdExternalCrate" #NOTE: Enable when this lands in stable
+max_width = 100
+# comment_width = 80 #NOTE: Enable when this lands in stable
+# wrap_comments = true #NOTE: Enable when this lands in stable
+# imports_granularity = "Crate" #NOTE: Enable when this lands in stable
+use_small_heuristics = "Default"
+# format_strings = true #NOTE: Enable when this lands in stable
+reorder_imports = true
+newline_style = "Unix"

@@ -1,0 +1,65 @@
+[package]
+name = "otel-init"
+version = "0.1.0"
+edition = "2024"
+publish = false
+autobenches = false
+description = "Helpers for initializing OpenTelemetry-based observability (tracing, metrics, logs) in async Rust services."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/liamwh/otel-init"
+homepage = "https://github.com/liamwh/otel-init"
+keywords = ["opentelemetry", "tracing", "metrics", "logging"]
+categories = ["development-tools::debugging", "asynchronous"]
+
+[dependencies]
+heck = { workspace = true }
+http = { workspace = true, optional = true }
+http-body = { workspace = true, optional = true }
+opentelemetry = { workspace = true }
+opentelemetry_sdk = { workspace = true }
+opentelemetry-appender-tracing = { workspace = true }
+opentelemetry-otlp = { workspace = true, default-features = false, features = ["tokio"] }
+opentelemetry-semantic-conventions = { workspace = true }
+parking_lot = { workspace = true }
+sysinfo = { workspace = true, optional = true }
+tokio = { workspace = true }
+tower = { workspace = true, optional = true }
+tracing = { workspace = true }
+tracing-appender = { workspace = true, optional = true }
+tracing-core = { workspace = true }
+tracing-opentelemetry = { workspace = true }
+tracing-subscriber = { workspace = true }
+ulid = { workspace = true }
+tracing-error = { workspace = true }
+serde_json = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+
+[features]
+default = ["traces", "metrics", "fmt", "grpc-tonic", "tls-roots"]
+traces = ["opentelemetry/trace", "opentelemetry_sdk/trace", "opentelemetry-otlp/trace"]
+metrics = [
+    "opentelemetry/metrics",
+    "opentelemetry_sdk/metrics",
+    "opentelemetry-otlp/metrics",
+]
+fmt = ["tracing-subscriber/fmt"]
+json = ["tracing-subscriber/json"]
+logs-otlp = ["opentelemetry/logs", "opentelemetry_sdk/logs", "opentelemetry-otlp/logs"]
+file-logging = ["dep:tracing-appender"]
+system = ["dep:sysinfo"]
+process = []
+http = ["dep:tower", "dep:http", "dep:http-body"]
+grpc-tonic = ["opentelemetry-otlp/grpc-tonic"]
+http-proto = ["opentelemetry-otlp/http-proto"]
+tls = ["opentelemetry-otlp/tls"]
+tls-roots = ["opentelemetry-otlp/tls-roots"]
+tls-webpki-roots = ["opentelemetry-otlp/tls-webpki-roots"]
+
+[dev-dependencies]
+axum = { workspace = true }
+test-log = { workspace = true }
+tempfile = { workspace = true}
+
+[lints]
+workspace = true

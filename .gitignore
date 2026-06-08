@@ -1,0 +1,130 @@
+# Node / frontend builds
+node_modules/
+.output
+.vercel
+.netlify
+.wrangler
+**/.svelte-kit/**
+/package
+dist-ssr/
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+.langgraph_api
+contexts/*
+**/*.key
+**/lcov.info
+**/tempo-data
+
+# Rust
+target/
+Cargo.locks
+build_rs_cov.profraw
+
+# Environments / secrets
+.env
+.env.*
+!.env.example
+!.env.test
+.uv/
+.venv/
+venv/
+ENV/
+env.bak/
+venv.bak/
+**/*.venv/*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+**/.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.spyderproject
+.spyproject
+.ropeproject
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Caches / coverage
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.tox/
+.nox/
+.cache
+.coverage
+.coverage.*
+coverage/
+coverage.out
+coverage.xml
+htmlcov/
+
+# Packaging / artefacts
+build/
+*.egg-info/
+*.egg
+develop-eggs/
+downloads/
+egss/??
+.eggs/
+.installed.cfg
+MANIFEST
+wheels/
+parts/
+sdist/
+var/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Data files
+*.db
+*.db-*
+db.sqlite3
+db.sqlite3-journal
+local_settings.py
+instance/
+.webassets-cache
+.scrapy
+celerybeat-schedule
+celerybeat.pid
+*.work
+go.work.sum
+*.local
+
+# Documentation
+docs/_build/
+docs/guide/book
+/site
+
+.ipynb_checkpoints
+profile_default/
+
+# Translations
+*.mo
+*.pot
+
+# Tests / reports
+nosetests.xml
+*.cover
+
+# Misc
+__pypackages__/
+*.sage.py

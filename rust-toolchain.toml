@@ -1,0 +1,5 @@
+[toolchain]
+channel = "1.92.0"
+# The rustc-codegen-cranelift component is nightly only as of 2025-05-20, uncomment when it lands in stable
+# components = ["rustfmt", "clippy", "rustc-codegen-cranelift"]
+components = ["rustfmt", "clippy"]
