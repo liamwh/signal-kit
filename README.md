@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="branding/otel-init.jpeg" alt="otel-init — opinionated OpenTelemetry bootstrap for Rust" width="400">
+  <img src="branding/otel-init.jpeg" alt="signal-kit — opinionated OpenTelemetry bootstrap for Rust" width="400">
 </p>
 
-<h1 align="center">otel-init</h1>
+<h1 align="center">signal-kit</h1>
 
 <p align="center">
   <strong>Opinionated OpenTelemetry bootstrap for async Rust services.</strong>
@@ -14,10 +14,10 @@
 
 ---
 
-`otel-init` wires up traces, metrics, and logs in one builder call. It defaults to sensible choices (Tokio, `tracing`, OTLP/gRPC) and gets out of your way.
+`signal-kit` wires up traces, metrics, and logs in one builder call. It defaults to sensible choices (Tokio, `tracing`, OTLP/gRPC) and gets out of your way.
 
 ```rust
-use otel_init::ObservabilityBuilder;
+use signal_kit::ObservabilityBuilder;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -39,17 +39,17 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-otel-init = { path = "path/to/otel-init" }
+signal-kit = { path = "path/to/signal-kit" }
 ```
 
 Then in `main`:
 
 ```rust
 // Production — returns Result
-let _guard = otel_init::try_init("my-service")?;
+let _guard = signal_kit::try_init("my-service")?;
 
 // Examples and tools — panics on failure
-let _guard = otel_init::init("my-service");
+let _guard = signal_kit::init("my-service");
 ```
 
 Set the OTLP endpoint and you're exporting:
@@ -64,7 +64,7 @@ Everything is optional. Set `OTEL_EXPORTER_OTLP_ENDPOINT` to enable export; leav
 
 ### Environment variables
 
-`otel-init` follows OpenTelemetry conventions — signal-specific endpoints take precedence over the general one:
+`signal-kit` follows OpenTelemetry conventions — signal-specific endpoints take precedence over the general one:
 
 | Variable | Purpose |
 |---|---|
@@ -74,15 +74,15 @@ Everything is optional. Set `OTEL_EXPORTER_OTLP_ENDPOINT` to enable export; leav
 | `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` | Logs-specific endpoint (overrides general) |
 | `RUST_LOG` | Log level filter (defaults to `info`) |
 
-Crate-specific variables are namespaced under `OTEL_INIT_`:
+Crate-specific variables are namespaced under `SIGNAL_KIT_`:
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `OTEL_INIT_STRUCTURED_LOGGING` | `false` | JSON stdout output |
-| `OTEL_INIT_FILE_ENABLED` | `false` | Enable file logging |
-| `OTEL_INIT_FILE_PATH` | — | Log file path |
-| `OTEL_INIT_FILE_ROTATION` | `daily` | `daily`, `hourly`, or `never` |
-| `OTEL_INIT_FILE_RETENTION_DAYS` | `7` | Days to keep rotated logs |
+| `SIGNAL_KIT_STRUCTURED_LOGGING` | `false` | JSON stdout output |
+| `SIGNAL_KIT_FILE_ENABLED` | `false` | Enable file logging |
+| `SIGNAL_KIT_FILE_PATH` | — | Log file path |
+| `SIGNAL_KIT_FILE_ROTATION` | `daily` | `daily`, `hourly`, or `never` |
+| `SIGNAL_KIT_FILE_RETENTION_DAYS` | `7` | Days to keep rotated logs |
 
 ### Resource attributes
 
@@ -136,7 +136,7 @@ let _guard = ObservabilityBuilder::new("my-service")
 ### File logging with rotation
 
 ```rust
-use otel_init::{FileLoggingConfig, ObservabilityBuilder, RotationConfig};
+use signal_kit::{FileLoggingConfig, ObservabilityBuilder, RotationConfig};
 
 let file_config = FileLoggingConfig::builder()
     .enabled(true)
@@ -159,7 +159,7 @@ let _guard = ObservabilityBuilder::new("my-service")
     .init()?;
 ```
 
-Or set `OTEL_INIT_STRUCTURED_LOGGING=true`.
+Or set `SIGNAL_KIT_STRUCTURED_LOGGING=true`.
 
 ## How it works
 

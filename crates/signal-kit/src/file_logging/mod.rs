@@ -1,4 +1,4 @@
-//! File-based logging for the otel-init crate.
+//! File-based logging for the signal-kit crate.
 //!
 //! This module provides file-based logging capabilities as a composable
 //! layer for the tracing subscriber. It supports time-based log rotation

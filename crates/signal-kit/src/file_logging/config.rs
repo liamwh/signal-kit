@@ -136,20 +136,20 @@ impl FileLoggingConfig {
     /// Environment variables take precedence over values in the config struct.
     ///
     /// Supported environment variables:
-    /// - `OTEL_INIT_FILE_ENABLED`: "true", "false", "1", or "0"
-    /// - `OTEL_INIT_FILE_PATH`: Full path to the log file
-    /// - `OTEL_INIT_FILE_ROTATION`: "daily", "hourly", or "never"
-    /// - `OTEL_INIT_FILE_RETENTION_DAYS`: Number of days (u32)
+    /// - `SIGNAL_KIT_FILE_ENABLED`: "true", "false", "1", or "0"
+    /// - `SIGNAL_KIT_FILE_PATH`: Full path to the log file
+    /// - `SIGNAL_KIT_FILE_ROTATION`: "daily", "hourly", or "never"
+    /// - `SIGNAL_KIT_FILE_RETENTION_DAYS`: Number of days (u32)
     pub fn with_env_overrides(mut self) -> Self {
-        if let Ok(val) = std::env::var("OTEL_INIT_FILE_ENABLED") {
+        if let Ok(val) = std::env::var("SIGNAL_KIT_FILE_ENABLED") {
             self.enabled = parse_bool(&val).unwrap_or(self.enabled);
         }
-        if let Ok(val) = std::env::var("OTEL_INIT_FILE_PATH")
+        if let Ok(val) = std::env::var("SIGNAL_KIT_FILE_PATH")
             && !val.trim().is_empty()
         {
             self.file_path = val;
         }
-        if let Ok(val) = std::env::var("OTEL_INIT_FILE_ROTATION") {
+        if let Ok(val) = std::env::var("SIGNAL_KIT_FILE_ROTATION") {
             self.rotation.strategy = match val.to_lowercase().as_str() {
                 "daily" => RotationStrategy::Daily,
                 "hourly" => RotationStrategy::Hourly,
@@ -157,7 +157,7 @@ impl FileLoggingConfig {
                 _ => self.rotation.strategy, // Keep existing if invalid
             };
         }
-        if let Ok(val) = std::env::var("OTEL_INIT_FILE_RETENTION_DAYS") {
+        if let Ok(val) = std::env::var("SIGNAL_KIT_FILE_RETENTION_DAYS") {
             self.rotation.retention_days = val.parse().unwrap_or(self.rotation.retention_days);
         }
         self

@@ -1,4 +1,4 @@
-//! # otel-init
+//! # signal-kit
 //!
 //! Opinionated OpenTelemetry initialisation for async Rust services.
 //!
@@ -6,9 +6,9 @@
 //! functions [`init`] and [`try_init`].
 //!
 //! ```no_run
-//! use otel_init::ObservabilityBuilder;
+//! use signal_kit::ObservabilityBuilder;
 //!
-//! # fn main() -> Result<(), otel_init::OtelInitError> {
+//! # fn main() -> Result<(), signal_kit::OtelInitError> {
 //! let _guard = ObservabilityBuilder::new("my-service")
 //!     .with_attribute("version", env!("CARGO_PKG_VERSION"))
 //!     .init()?;
@@ -32,10 +32,10 @@
 //! `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`. Signal-specific endpoints take
 //! precedence over the general endpoint.
 //!
-//! Crate-specific runtime variables are namespaced under `OTEL_INIT_`:
-//! `OTEL_INIT_STRUCTURED_LOGGING`, `OTEL_INIT_FILE_ENABLED`,
-//! `OTEL_INIT_FILE_PATH`, `OTEL_INIT_FILE_ROTATION`, and
-//! `OTEL_INIT_FILE_RETENTION_DAYS`.
+//! Crate-specific runtime variables are namespaced under `SIGNAL_KIT_`:
+//! `SIGNAL_KIT_STRUCTURED_LOGGING`, `SIGNAL_KIT_FILE_ENABLED`,
+//! `SIGNAL_KIT_FILE_PATH`, `SIGNAL_KIT_FILE_ROTATION`, and
+//! `SIGNAL_KIT_FILE_RETENTION_DAYS`.
 //!
 //! Resource attributes are resolved in this order: explicit builder
 //! attributes, `OTEL_RESOURCE_ATTRIBUTES`, crate convenience aliases such as

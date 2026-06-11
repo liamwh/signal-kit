@@ -444,7 +444,7 @@ impl ObservabilityBuilder {
     }
 }
 
-const USE_STRUCTURED_LOGGING_ENV_VAR: &str = "OTEL_INIT_STRUCTURED_LOGGING";
+const USE_STRUCTURED_LOGGING_ENV_VAR: &str = "SIGNAL_KIT_STRUCTURED_LOGGING";
 const USE_STRUCTURED_LOGGING_DEFAULT: bool = false;
 
 fn structured_logging_enabled() -> bool {

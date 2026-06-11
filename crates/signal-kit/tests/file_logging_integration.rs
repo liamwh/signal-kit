@@ -6,7 +6,7 @@
 
 #![cfg(feature = "file-logging")]
 
-use otel_init::file_logging::{FileLoggingConfig, RotationConfig, build_file_writer};
+use signal_kit::file_logging::{FileLoggingConfig, RotationConfig, build_file_writer};
 use std::fs;
 use tempfile::TempDir;
 use tracing_subscriber::{fmt, prelude::*};

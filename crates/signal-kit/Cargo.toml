@@ -1,13 +1,13 @@
 [package]
-name = "otel-init"
+name = "signal-kit"
 version = "0.1.0"
 edition = "2024"
 publish = false
 autobenches = false
 description = "Helpers for initializing OpenTelemetry-based observability (tracing, metrics, logs) in async Rust services."
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/liamwh/otel-init"
-homepage = "https://github.com/liamwh/otel-init"
+repository = "https://github.com/liamwh/signal-kit"
+homepage = "https://github.com/liamwh/signal-kit"
 keywords = ["opentelemetry", "tracing", "metrics", "logging"]
 categories = ["development-tools::debugging", "asynchronous"]
 

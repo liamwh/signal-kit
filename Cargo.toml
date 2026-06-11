@@ -50,7 +50,7 @@ ulid = { version = "^1", features = ["serde"] }
 serde = { version = "^1", features = ["derive"] }
 serde_json = "^1"
 thiserror = "~2.0"
-otel-init = { path = "crates/otel-init" }
+signal-kit = { path = "crates/signal-kit" }
 
 [workspace.lints.rust]
 # Salux preference lints
