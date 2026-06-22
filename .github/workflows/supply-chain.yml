@@ -145,12 +145,19 @@ jobs:
       - name: Upload cargo-deny SARIF to code scanning
         if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: github/codeql-action/upload-sarif@181d5eefc20863364f96762470ba6f862bdef56b # v3.29.2
+        # SARIF upload is a best-effort reporting channel, not part of the
+        # security gate (which is cargo-deny/cargo-audit above). It must not
+        # fail the job when code scanning is not enabled on the repo, on org
+        # plans without it, or for any transient upload error — findings remain
+        # in the logs, job summary, and the scanner fail-step above.
+        continue-on-error: true
         with:
           sarif_file: deny.sarif
           category: cargo-deny
       - name: Upload cargo-audit SARIF to code scanning
         if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: github/codeql-action/upload-sarif@181d5eefc20863364f96762470ba6f862bdef56b # v3.29.2
+        continue-on-error: true
         with:
           sarif_file: audit.sarif
           category: cargo-audit
