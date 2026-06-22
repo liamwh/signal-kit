@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="branding/otel-init.jpeg" alt="signal-kit — opinionated OpenTelemetry bootstrap for Rust" width="400">
+  <img src="branding/signal-kit-full.webp" alt="signal-kit — opinionated OpenTelemetry for production Rust services" width="560">
 </p>
 
 <h1 align="center">signal-kit</h1>
 
 <p align="center">
-  <strong>Opinionated OpenTelemetry bootstrap for async Rust services.</strong>
+  <strong>Opinionated OpenTelemetry for production Rust services.</strong>
 </p>
 
 <p align="center">
