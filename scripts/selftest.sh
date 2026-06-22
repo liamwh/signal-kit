@@ -93,7 +93,7 @@ if [ -f "$SBOM" ]; then
     assert_eq() { [ "$2" = "$3" ] && ok "$1" || bad "$1 ('$2' != '$3')"; }
     assert_eq "SBOM bomFormat"          "CycloneDX"  "$(jq -r '.bomFormat' "$SBOM")"
     assert_eq "SBOM describes signal-kit" "$PRODUCT" "$(jq -r '.metadata.component.name' "$SBOM")"
-    assert_eq "SBOM specVersion"        "1.5"        "$(jq -r '.specVersion' "$SBOM")"
+    assert_eq "SBOM specVersion"        "1.4"        "$(jq -r '.specVersion' "$SBOM")"
     assert_eq "SBOM component version"  "$VERSION"   "$(jq -r '.metadata.component.version' "$SBOM")"
 fi
 
