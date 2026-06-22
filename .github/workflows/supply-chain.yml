@@ -143,6 +143,7 @@ jobs:
           [ "${{ steps.audit.outputs.code }}" = "0" ] || { echo "::error::cargo-audit reported vulnerabilities"; exit 1; }
 
       - name: Upload cargo-deny SARIF to code scanning
+        id: sarif_deny
         if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: github/codeql-action/upload-sarif@181d5eefc20863364f96762470ba6f862bdef56b # v3.29.2
         # SARIF upload is a best-effort reporting channel, not part of the
@@ -155,12 +156,31 @@ jobs:
           sarif_file: deny.sarif
           category: cargo-deny
       - name: Upload cargo-audit SARIF to code scanning
+        id: sarif_audit
         if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: github/codeql-action/upload-sarif@181d5eefc20863364f96762470ba6f862bdef56b # v3.29.2
         continue-on-error: true
         with:
           sarif_file: audit.sarif
           category: cargo-audit
+      # Surface SARIF-upload regressions prominently. The upload is
+      # non-blocking (continue-on-error), but a failure must be visible — as a
+      # workflow warning annotation AND a job-summary entry — so a disabled or
+      # misconfigured code-scanning feature is never silently lost.
+      - name: Report SARIF upload status
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          if [ "${{ steps.sarif_deny.outcome }}" = "failure" ] || [ "${{ steps.sarif_audit.outcome }}" = "failure" ]; then
+            echo "::warning::SARIF upload to code scanning failed (is code scanning enabled? Settings → Code security). cargo-deny/cargo-audit findings are still enforced by the gate and visible in the workflow logs."
+            {
+              echo "## ⚠️ SARIF → code scanning upload failed"
+              echo "The cargo-deny/cargo-audit SARIF upload did not succeed (code scanning may be disabled). This is **non-blocking**: vulnerability/policy findings are still enforced by cargo-deny + cargo-audit and the final \`Gate (required)\`, and are visible in the workflow logs. Enable code scanning (**Settings → Code security**) to surface them as code-scanning alerts."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "SARIF → code scanning: uploaded (cargo-deny + cargo-audit categories)." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
   # ---------------------------------------------------------------------------
   # SBOM job: generate + schema-validate. Runs only when dependency-relevant
