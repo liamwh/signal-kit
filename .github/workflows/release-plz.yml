@@ -72,10 +72,13 @@ jobs:
           tag=""
           # release-plz creates the tag synchronously, but allow a short retry
           # for API propagation.
+          # Use repos/.../tags (NOT git/matching-refs/tags): the latter returns
+          # the tag-OBJECT sha for annotated tags, which never equals the commit
+          # $GITHUB_SHA. repos/.../tags returns the dereferenced commit sha, so
+          # it matches both lightweight and annotated tags.
           for _ in 1 2 3 4 5 6; do
-            tag="$(gh api "repos/${{ github.repository }}/git/matching-refs/tags" \
-                    --jq "[.[] | select(.object.sha==\"$GITHUB_SHA\") | .ref] | first" 2>/dev/null \
-                  | sed 's|^refs/tags/||' || true)"
+            tag="$(gh api "repos/${{ github.repository }}/tags?per_page=100" \
+                    --jq "[.[] | select(.commit.sha==\"$GITHUB_SHA\") | .name] | first" 2>/dev/null || true)"
             [ -n "$tag" ] && break
             sleep 5
           done
@@ -91,8 +94,8 @@ jobs:
           fi
 
           # Exactly one tag must point at this commit (no ambiguity).
-          count="$(gh api "repos/${{ github.repository }}/git/matching-refs/tags" \
-                    --jq "[.[] | select(.object.sha==\"$GITHUB_SHA\")] | length")"
+          count="$(gh api "repos/${{ github.repository }}/tags?per_page=100" \
+                    --jq "[.[] | select(.commit.sha==\"$GITHUB_SHA\")] | length")"
           [ "$count" -eq 1 ] || { echo "::error::$count tags point at $GITHUB_SHA; refusing ambiguous release"; exit 1; }
 
           version="$(cargo metadata --no-deps --format-version 1 \
