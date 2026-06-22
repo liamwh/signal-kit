@@ -88,7 +88,7 @@ jobs:
           echo "ref=$ref" >> "$GITHUB_OUTPUT"
 
       - name: Checkout the exact release commit
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ steps.checkoutref.outputs.ref }}
           fetch-depth: 0
@@ -111,7 +111,7 @@ jobs:
           fi
 
       - name: Install supply-chain tooling (pinned, verified binaries)
-        uses: taiki-e/install-action@0eee80d37f55e834144deec670972c19e81a85b0 # v2.56.0
+        uses: taiki-e/install-action@9e1e5806d4a4822de933115878265be9aaa786d9 # v2.82.2
         with:
           # cargo-auditable is installed unconditionally (small); release-artifacts.sh
           # only USES it when a binary/cdylib target exists, so a source-only
@@ -192,20 +192,20 @@ jobs:
       #      the local dist/ files by digest, which are identical to the bytes
       #      later uploaded, so attest-then-upload is valid and safer.
       - name: Attest build provenance (crate + SBOMs)
-        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
           subject-path: |
             dist/signal-kit-*.crate
             dist/signal-kit-*.cdx.json
 
       - name: Attest canonical (default) SBOM to the crate
-        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b # v2.4.0
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
           subject-path: ${{ steps.assemble.outputs.crate }}
           sbom-path: ${{ steps.assemble.outputs.sbom_default }}
 
       - name: Attest maximal (all-features) SBOM to the crate
-        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b # v2.4.0
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
           subject-path: ${{ steps.assemble.outputs.crate }}
           sbom-path: ${{ steps.assemble.outputs.sbom_all }}
