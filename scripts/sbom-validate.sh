@@ -45,7 +45,7 @@ struct_check() {
 }
 
 struct_check "bomFormat"      '.bomFormat'                 "CycloneDX"
-# specVersion allow-list (allow 1.3/1.4/1.5; cargo-cyclonedx 0.5 emits 1.5).
+# specVersion allow-list (allow 1.3/1.4/1.5; cargo-cyclonedx 0.5 emits 1.4 (1.5 has a non-conformant tools field in 0.5.x)).
 SV="$(jq -r '.specVersion' "$SBOM" 2>/dev/null || echo "")"
 case "$SV" in
     1.3|1.4|1.5) ;;

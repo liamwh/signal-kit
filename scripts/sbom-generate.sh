@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# sbom-generate.sh — generate a deterministic CycloneDX 1.5 SBOM for signal-kit
+# sbom-generate.sh — generate a deterministic CycloneDX 1.4 SBOM for signal-kit
 # =============================================================================
 #
 # Generates a CycloneDX JSON SBOM using the official `cargo-cyclonedx` tooling,
@@ -77,13 +77,13 @@ OUT_PATH="$(cd "$OUT_DIR" && pwd)/${BASE}.cdx.json"
 rm -f "$STAGING_PATH"
 trap 'rm -f "$STAGING_PATH"' EXIT
 
-log "generating CycloneDX 1.5 SBOM: ${BASE} (features=${FEATURES_FLAG[*]:-default}, target=${TARGET_FLAG[*]:-host}, manifest=$MANIFEST_PATH)"
+log "generating CycloneDX 1.4 SBOM: ${BASE} (features=${FEATURES_FLAG[*]:-default}, target=${TARGET_FLAG[*]:-host}, manifest=$MANIFEST_PATH)"
 
 SOURCE_DATE_EPOCH="$(commit_epoch)" \
     cargo cyclonedx \
         --manifest-path "$MANIFEST_PATH" \
         --format json \
-        --spec-version 1.5 \
+        --spec-version 1.4 \
         --override-filename "${BASE}.cdx" \
         "${FEATURES_FLAG[@]}" \
         "${TARGET_FLAG[@]}" \

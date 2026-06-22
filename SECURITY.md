@@ -68,8 +68,8 @@ For release `signal-kit-<version>`:
 | Asset | Description |
 |---|---|
 | `signal-kit-<version>.crate` | Packaged source (`cargo package --locked`) — **also published to crates.io**. The source of truth. |
-| `signal-kit-<version>-default.cdx.json` | **Canonical** CycloneDX 1.5 SBOM (see scope below). |
-| `signal-kit-<version>-all-features-all-targets.cdx.json` | **Maximal** CycloneDX 1.5 SBOM. |
+| `signal-kit-<version>-default.cdx.json` | **Canonical** CycloneDX 1.4 SBOM (see scope below). |
+| `signal-kit-<version>-all-features-all-targets.cdx.json` | **Maximal** CycloneDX 1.4 SBOM. |
 | `SHA256SUMS` | SHA-256 of the `.crate` and both SBOMs. |
 
 Plus GitHub **attestations** (sigstore; verifiable with `gh`):
@@ -93,7 +93,7 @@ consumer's own lockfile + target + features determine that). Both SBOMs are
 generated with:
 
 - **Toolchain:** Rust **1.92.0** (`rust-toolchain.toml`) · Cargo **1.92.0**.
-- **Tool:** `cargo-cyclonedx` 0.5.9 → CycloneDX **1.5** JSON.
+- **Tool:** `cargo-cyclonedx` 0.5.9 → CycloneDX **1.4** JSON.
 - **Lockfile:** the committed `Cargo.lock` (the release dependency resolution).
 - **Manifest:** the packaged `signal-kit-<version>.crate`'s `Cargo.toml`.
 - **Reproducibility:** `SOURCE_DATE_EPOCH` = the release commit timestamp → byte-identical output per commit (no random serial number).
