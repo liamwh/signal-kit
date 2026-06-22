@@ -198,17 +198,25 @@ jobs:
             dist/signal-kit-*.crate
             dist/signal-kit-*.cdx.json
 
+      # Bind each SBOM to the exact .crate via the generic actions/attest with a
+      # CycloneDX predicate. We use actions/attest (not actions/attest-sbom)
+      # because attest-sbom's strict CycloneDX parser rejects cargo-cyclonedx
+      # output ("Unsupported SBOM format"); actions/attest embeds the SBOM as the
+      # predicate without re-validating it, and the resulting attestation is still
+      # verifiable with `gh attestation verify`.
       - name: Attest canonical (default) SBOM to the crate
-        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
         with:
           subject-path: ${{ steps.assemble.outputs.crate }}
-          sbom-path: ${{ steps.assemble.outputs.sbom_default }}
+          predicate-type: https://cyclonedx.org/bom
+          predicate-path: ${{ steps.assemble.outputs.sbom_default }}
 
       - name: Attest maximal (all-features) SBOM to the crate
-        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
         with:
           subject-path: ${{ steps.assemble.outputs.crate }}
-          sbom-path: ${{ steps.assemble.outputs.sbom_all }}
+          predicate-type: https://cyclonedx.org/bom
+          predicate-path: ${{ steps.assemble.outputs.sbom_all }}
 
       # ---- Upload assets to the exact Release (--clobber makes re-runs idempotent)
       - name: Upload artefacts to the GitHub Release

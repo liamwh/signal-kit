@@ -271,7 +271,7 @@ This verifies every attestation whose subject is that file's digest — both bui
 provenance and the SBOM binding (the SBOM attestation's predicate is the
 CycloneDX document bound to that crate). Filter with
 `--predicate-type https://slsa.dev/provenance/v1` (provenance) or
-`https://spdx.dev/spdx-cdx-attestation` (SBOM).
+`https://cyclonedx.org/bom` (SBOM).
 
 The release workflow itself performs this verification end-to-end after upload:
 it downloads the published assets, runs `gh attestation verify` on the `.crate`,
