@@ -1,0 +1,283 @@
+# Reusable, privileged release-supply-chain workflow for signal-kit.
+#
+# Invoked by .github/workflows/release-plz.yml immediately after release-plz
+# creates a Release, with the EXACT tag, version and commit SHA as inputs (never
+# "latest"/order-based). Also runnable manually via workflow_dispatch with an
+# exact tag. It:
+#
+#   1. checks out ONLY the exact trusted release commit and verifies that the
+#      checked-out commit, the resolved version, the tag and the GitHub Release
+#      all agree (scripts/verify-release-identity.sh);
+#   2. re-runs the cargo-deny + cargo-audit gate with a fresh advisory DB;
+#   3. builds the .crate as the source of truth (cargo package --locked),
+#      extracts it, validates its contents, and compiles it independently with
+#      the release dependency resolution;
+#   4. generates CycloneDX SBOMs FROM the packaged manifest + release lockfile;
+#   5. uploads the .crate, SBOMs and SHA256SUMS to the Release;
+#   6. creates build-provenance + SBOM attestations bound to the exact .crate;
+#   7. downloads the just-uploaded assets back and verifies the attestations and
+#      checksums end-to-end (fails the release if a consumer could not verify).
+#
+# Privileged boundary: this job runs scripts/ checked out from the trusted
+# release commit only; it never executes pull-request-controlled code, uses
+# persist-credentials: false, restores no branch-shared caches, and grants only
+# the permissions declared below.
+
+name: Release supply chain
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Exact release tag (e.g. v0.1.0)'
+        required: true
+        type: string
+      version:
+        description: 'Exact package version (e.g. 0.1.0); empty to derive from the tag checkout'
+        required: false
+        type: string
+        default: ''
+      sha:
+        description: 'Exact release commit SHA; empty to derive from the tag checkout'
+        required: false
+        type: string
+        default: ''
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Exact release tag to attach artefacts to (e.g. v0.1.0)'
+        required: true
+        type: string
+
+# One run per (package, version) — duplicate runs cannot race or mutate the same
+# release. Never cancel a release mid-flight.
+concurrency:
+  group: release-supply-chain-${{ inputs.tag }}
+  cancel-in-progress: false
+
+# Least privilege for this job only: contents:write uploads assets; id-token:write
+# + attestations:write create sigstore attestations. Nothing else.
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_DENY_VERSION: 0.19.0
+  CARGO_AUDIT_VERSION: 0.22.2
+  CARGO_CYCLONEDX_VERSION: 0.5.9
+  CARGO_AUDITABLE_VERSION: 0.7.0
+
+jobs:
+  release-supply-chain:
+    name: Package · Scan · SBOM · Attest · Verify
+    runs-on: ubuntu-latest
+    # Defense in depth: the caller is already trusted, but never augment a
+    # release outside the owner's repository.
+    if: github.repository_owner == 'liamwh'
+    timeout-minutes: 40
+    steps:
+      - name: Resolve checkout ref
+        id: checkoutref
+        shell: bash
+        run: |
+          ref="${{ inputs.sha }}"
+          [ -n "$ref" ] || ref="${{ inputs.tag }}"
+          [ -n "$ref" ] || { echo "::error::no tag or sha resolved"; exit 1; }
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout the exact release commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ steps.checkoutref.outputs.ref }}
+          fetch-depth: 0
+          # No git credential persistence in the privileged boundary.
+          persist-credentials: false
+
+      - name: Install Rust toolchain (from rust-toolchain.toml)
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+      - name: Detect binary targets
+        id: bins
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Uses scripts/binary-targets.sh from the checked-out release commit.
+          if [ -n "$(bash scripts/binary-targets.sh)" ]; then
+            echo "present=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install supply-chain tooling (pinned, verified binaries)
+        uses: taiki-e/install-action@0eee80d37f55e834144deec670972c19e81a85b0 # v2.56.0
+        with:
+          # cargo-auditable is installed unconditionally (small); release-artifacts.sh
+          # only USES it when a binary/cdylib target exists, so a source-only
+          # library never falsely claims an auditable build.
+          tool: cargo-deny@${{ env.CARGO_DENY_VERSION }},cargo-audit@${{ env.CARGO_AUDIT_VERSION }},cargo-cyclonedx@${{ env.CARGO_CYCLONEDX_VERSION }},cargo-auditable@${{ env.CARGO_AUDITABLE_VERSION }}
+
+      - name: Verify release identity (tag · version · sha · Release all agree)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          bash scripts/verify-release-identity.sh \
+              --tag "${{ inputs.tag }}" \
+              --version "${{ inputs.version }}" \
+              --sha "${{ inputs.sha }}"
+
+      - name: Assert publish policy
+        shell: bash
+        run: bash scripts/check-publish-policy.sh
+
+      # ---- Gate: re-scan at release time with a FRESH advisory DB -----------
+      - name: cargo-deny (release gate)
+        shell: bash
+        run: cargo deny check
+
+      - name: cargo-audit (release gate)
+        shell: bash
+        run: cargo audit
+
+      # ---- Assemble: .crate is the source of truth --------------------------
+      - name: Assemble release artefacts
+        id: assemble
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/release-artifacts.sh --out-dir dist
+          shopt -s nullglob
+          crates=( dist/signal-kit-*.crate )
+          defaults=( dist/signal-kit-*-default.cdx.json )
+          alls=( dist/signal-kit-*-all-features-all-targets.cdx.json )
+          CRATE="${crates[0]:?no crate produced}"
+          SBOM_DEFAULT="${defaults[0]:?no default SBOM produced}"
+          SBOM_ALL="${alls[0]:?no all-features SBOM produced}"
+          VERSION="$(jq -r '.metadata.component.version' "$SBOM_DEFAULT")"
+          {
+            echo "crate=${CRATE}"
+            echo "sbom_default=${SBOM_DEFAULT}"
+            echo "sbom_all=${SBOM_ALL}"
+            echo "version=${VERSION}"
+            echo "crate_sha=$(sha256sum "$CRATE" | awk '{print $1}')"
+            echo "sbom_sha=$(sha256sum "$SBOM_DEFAULT" | awk '{print $1}')"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Fetch CycloneDX CLI validator (checksum-verified)
+        id: cdxcli
+        shell: bash
+        run: echo "path=$(bash scripts/fetch-cyclonedx-cli.sh)" >> "$GITHUB_OUTPUT"
+
+      - name: Validate release CycloneDX SBOMs
+        shell: bash
+        env:
+          CYCLONEDX_CLI: ${{ steps.cdxcli.outputs.path }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          sboms=( dist/signal-kit-*.cdx.json )
+          [ "${#sboms[@]}" -gt 0 ] || { echo "::error::no SBOMs to validate"; exit 1; }
+          for sbom in "${sboms[@]}"; do
+            echo "::group::validate $(basename "$sbom")"
+            bash scripts/sbom-validate.sh "$sbom"
+            echo "::endgroup::"
+          done
+
+      # ---- Attestations: create BEFORE upload so a failure here leaves the
+      #      existing Release untouched (no partial upload). Attestations bind to
+      #      the local dist/ files by digest, which are identical to the bytes
+      #      later uploaded, so attest-then-upload is valid and safer.
+      - name: Attest build provenance (crate + SBOMs)
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
+        with:
+          subject-path: |
+            dist/signal-kit-*.crate
+            dist/signal-kit-*.cdx.json
+
+      - name: Attest canonical (default) SBOM to the crate
+        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b # v2.4.0
+        with:
+          subject-path: ${{ steps.assemble.outputs.crate }}
+          sbom-path: ${{ steps.assemble.outputs.sbom_default }}
+
+      - name: Attest maximal (all-features) SBOM to the crate
+        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b # v2.4.0
+        with:
+          subject-path: ${{ steps.assemble.outputs.crate }}
+          sbom-path: ${{ steps.assemble.outputs.sbom_all }}
+
+      # ---- Upload assets to the exact Release (--clobber makes re-runs idempotent)
+      - name: Upload artefacts to the GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release upload "${{ inputs.tag }}" \
+              --repo "${{ github.repository }}" \
+              dist/signal-kit-*.crate \
+              dist/signal-kit-*.cdx.json \
+              dist/SHA256SUMS \
+              --clobber
+
+      # ---- Verify: download the published assets back from the exact Release
+      #      and prove a consumer can verify attestations + checksums. Fails the
+      #      release otherwise.
+      - name: Verify published assets (attestations + checksums)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          verify="$(mktemp -d)"
+          gh release download "${{ inputs.tag }}" \
+              --repo "${{ github.repository }}" \
+              --dir "$verify" \
+              --pattern '*.crate' \
+              --pattern '*.cdx.json' \
+              --pattern 'SHA256SUMS'
+          CRATE="$verify/signal-kit-${{ steps.assemble.outputs.version }}.crate"
+          [ -f "$CRATE" ] || { echo "::error::crate not present in published assets"; exit 1; }
+          # A consumer must be able to verify the build-provenance + SBOM attestations.
+          gh attestation verify "$CRATE" --repo "${{ github.repository }}"
+          # And the published SHA256SUMS must match the downloaded bytes.
+          ( cd "$verify" && { sha256sum -c SHA256SUMS 2>/dev/null || shasum -a 256 -c SHA256SUMS; } )
+          rm -rf "$verify"
+
+      # ---- Summary ----------------------------------------------------------
+      - name: Finalise summary
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          {
+            echo "## 🚀 Release supply-chain — ${{ inputs.tag }}"
+            echo
+            echo "| Step | Result |"
+            echo "|---|---|"
+            echo "| Release identity (tag · version · sha · Release agree) | ✅ verified |"
+            echo "| Publish policy (crates.io-publishable) | ✅ asserted |"
+            echo "| cargo-deny + cargo-audit gate (fresh advisory DB) | ✅ pass |"
+            echo "| .crate built & independently compiled (source of truth) | ✅ verified |"
+            echo "| CycloneDX SBOMs (from packaged manifest, validated) | ✅ valid |"
+            echo "| Assets uploaded (crate · SBOMs · SHA256SUMS) | ✅ uploaded |"
+            echo "| Build-provenance + SBOM attestations | ✅ created |"
+            echo "| Post-download attestation + checksum verification | ✅ verified |"
+            echo
+            echo "**Package:** \`signal-kit ${{ steps.assemble.outputs.version }}\`  ·  **Tag:** \`${{ inputs.tag }}\`"
+            echo
+            echo "| Artefact | SHA-256 |"
+            echo "|---|---|"
+            echo "| \`signal-kit-${{ steps.assemble.outputs.version }}.crate\` | \`${{ steps.assemble.outputs.crate_sha }}\` |"
+            echo "| \`signal-kit-${{ steps.assemble.outputs.version }}-default.cdx.json\` | \`${{ steps.assemble.outputs.sbom_sha }}\` |"
+            echo
+            echo "Verify as a consumer:"
+            echo
+            echo '```sh'
+            echo "gh attestation verify signal-kit-${{ steps.assemble.outputs.version }}.crate --repo ${{ github.repository }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

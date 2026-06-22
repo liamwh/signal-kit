@@ -1,0 +1,158 @@
+# =============================================================================
+# cargo-deny policy — signal-kit
+# =============================================================================
+#
+# This file is the repository's dependency-governance policy. It is enforced by
+# the `supply-chain` GitHub Actions workflow on every pull request and on the
+# default branch, and can be run locally with:
+#
+#     just deny            # all checks
+#     cargo deny check     # equivalent
+#
+# Failure policy (mirrors the project's documented supply-chain policy):
+#   - Any RustSec advisory for a vulnerability, unsoundness, or a yanked crate
+#     that applies to our resolved graph FAILS the check.
+#   - Unmaintained crates are surfaced as failures so they get fixed rather than
+#     silently carried; a genuinely-unavoidable one must be waived below with a
+#     reason, an owner, and an expiry date (no blanket ignores).
+#   - Only permissive, OSI-approved licences compatible with signal-kit's own
+#     "MIT OR Apache-2.0" are allowed. No copyleft licences.
+#   - Only the crates.io registry is an accepted source.
+#
+# Adding an advisory exception (see SECURITY.md "Advisory exceptions"):
+#   1. Append an object to `advisories.ignore` with the advisory id, a concrete
+#      reason, the owner who will track it, and an expiry date.
+#   2. Exceptions are reviewed on or before their expiry date. Do not extend an
+#      exception without re-evaluating the advisory.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Graph resolution
+# ---------------------------------------------------------------------------
+# signal-kit is a *library*: a downstream consumer can enable any combination of
+# its Cargo features. Lint with `all-features` so the policy is enforced across
+# the widest dependency surface, not just the default configuration.
+[graph]
+all-features = true
+
+# Resolve dependencies for every triple signal-kit realistically runs on. The
+# set of *platform-conditional* dependencies (e.g. TLS, system metrics) differs
+# across these, so policy is evaluated against the union of their graphs.
+targets = [
+    { triple = "x86_64-unknown-linux-gnu" },
+    { triple = "aarch64-unknown-linux-gnu" },
+    { triple = "x86_64-apple-darwin" },
+    { triple = "aarch64-apple-darwin" },
+    { triple = "x86_64-pc-windows-msvc" },
+    { triple = "aarch64-pc-windows-msvc" },
+]
+
+# ---------------------------------------------------------------------------
+# Advisories — RustSec vulnerability / unsoundness / yanked crates
+# ---------------------------------------------------------------------------
+[advisories]
+# The canonical RustSec advisory database. Pinned to the official source; the
+# `supply-chain` workflow caches it but refreshes it on each run. The advisory
+# database lives under the cargo home ($CARGO_HOME/advisory-dbs) by default.
+db-urls = ["https://github.com/rustsec/advisory-db"]
+
+# A crate yanked from crates.io is a hard failure: a published version should
+# not depend on something withdrawn upstream.
+yanked = "deny"
+
+# Unmaintained-crates policy: block ALL unmaintained advisories (direct AND
+# transitive). cargo-deny cannot split "block direct, warn transitive", so this
+# is the stricter of the two practical choices.
+#
+# Decision + rationale: signal-kit's dependency tree runs through security-
+# sensitive code (ring, rustls, rustls-webpki, tonic TLS). An unmaintained crate
+# anywhere on that path is a real risk, so we treat unmaintained as release-
+# blocking rather than advisory. The availability cost — a release may be blocked
+# on an unmaintained transitive crate — is accepted and resolved by either
+# updating the dependency or adding a narrow, justified, owned, expiry-dated
+# exception in `ignore` below (never a blanket ignore). To relax this to
+# "warn-only on unmaintained", set unmaintained = "none" and rely on cargo-audit
+# surfacing unmaintained advisories as warnings; document the change in
+# SECURITY.md first.
+unmaintained = "all"
+
+# Named, documented exceptions only. Each entry MUST carry a reason, an owner,
+# and an expiry. There are none today; the template below shows the format.
+ignore = [
+    # {
+    #     id = "RUSTSEC-0000-0000",
+    #     reason = "Why this advisory is acceptable for signal-kit right now.",
+    #     owner  = "@liamwh",
+    #     expiry = "2026-12-31",   # YYYY-MM-DD — re-evaluate on or before this date
+    # },
+]
+
+# ---------------------------------------------------------------------------
+# Licences — permissive allow-list compatible with "MIT OR Apache-2.0"
+# ---------------------------------------------------------------------------
+# Derived from the actual licences present in the dependency graph (see
+# SECURITY.md). All entries are permissive and OSI-approved. No copyleft
+# licences (GPL/AGPL/LGPL/MPL) are permitted; none appear in the graph.
+[licenses]
+# Require high confidence in licence detection before relying on it.
+confidence-threshold = 0.93
+
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception", # compiler-adjacent crates
+    "ISC",                             # ring, rustls-webpki, untrusted
+    "BSD-2-Clause",                    # zerocopy
+    "BSD-3-Clause",                    # subtle, matchit
+    "BSL-1.0",                         # Boost Software License (permissive) — ryu
+    "Unicode-3.0",                     # unicode-ident
+    "Unlicense",                       # public-domain-equivalent — aho-corasick, memchr
+    "Zlib",                            # various
+    "CDLA-Permissive-2.0",             # permissive data licence — webpki-roots CA bundle
+]
+
+# Copyleft / source-available licences (GPL, AGPL, LGPL, MPL, SSPL, BUSL,
+# CC-BY-SA) are rejected implicitly: this is an *allow-list*, and a crate
+# whose licence expression does not resolve to one of the entries in `allow`
+# fails the check. None appear in the current graph. If one must be accepted
+# for a specific crate, add a documented, scoped `exceptions` entry — never add
+# a copyleft SPDX id to `allow`.
+
+
+# No per-crate licence exceptions are currently needed.
+exceptions = []
+
+# ---------------------------------------------------------------------------
+# Bans — disallowed crates, duplicate versions, wildcard requirements
+# ---------------------------------------------------------------------------
+[bans]
+# The Rust ecosystem regularly pulls two semver-incompatible copies of a crate
+# transitively; forbidding that outright is impractical and noisy. Report
+# duplicates as warnings so they are visible and actionable, but do not fail.
+multiple-versions = "warn"
+# Show every duplicate occurrence in the report.
+highlight = "all"
+# `*` version requirements hide the resolved version and are a supply-chain
+# smell — require an actual version.
+wildcards = "deny"
+
+# No crates are banned today. Add a crate here only with justification; e.g. to
+# block a known-bad name. `deny = [{ name = "...", reason = "..." }]`.
+deny = []
+# Permitted crates left empty.
+allow = []
+# Reviewed duplicate-version groups that are safe to skip can be silenced here
+# once understood, e.g. skip = [{ name = "windows-sys", version = "0.48" }].
+skip = []
+skip-tree = []
+
+# ---------------------------------------------------------------------------
+# Sources — only crates.io is trusted
+# ---------------------------------------------------------------------------
+[sources]
+# Any dependency resolved from a registry other than crates.io, or from a git
+# URL, fails. This is the supply-chain boundary: no surprise code origins.
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

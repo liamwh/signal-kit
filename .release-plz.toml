@@ -2,4 +2,7 @@
 changelog_update = true
 git_release_enable = true
 git_tag_enable = true
+# signal-kit IS published to crates.io by release-plz (Cargo.toml is publishable).
+# Publishing uses the CARGO_REGISTRY_TOKEN secret in .github/workflows/release-plz.yml.
+# Consistency is asserted by scripts/check-publish-policy.sh.
 publish = true

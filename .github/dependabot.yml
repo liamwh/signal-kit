@@ -1,18 +1,46 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+# Dependabot configuration for signal-kit.
+#
+# Updates GitHub Actions and Cargo dependencies. All third-party actions are
+# pinned to full commit SHAs with inline `# vX.Y.Z` tag comments; Dependabot
+# updates the SHA (and refreshes the comment) rather than replacing it with a
+# mutable tag, so pinning is preserved while staying current.
 
 version: 2
-updates:
-  - package-ecosystem: "cargo"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    rebase-strategy: "auto"
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
+updates:
+  # GitHub Actions: keep the commit-SHA pins in .github/workflows/* fresh.
+  - package-ecosystem: github-actions
+    directory: /
     schedule:
-      interval: "weekly"
-    rebase-strategy: "auto"
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci"
+      include: scope
+    labels:
+      - dependencies
+      - github-actions
+
+  # Cargo: keep Cargo.lock patched (workspace + transitive deps). Cargo.lock is
+  # committed, so these updates are reviewable PRs — often security patches.
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      cargo-patch:
+        # Group patch (semver-compatible) updates; minor/major update separately.
+        update-types:
+          - patch
+    commit-message:
+      prefix: "build"
+      include: scope
+    labels:
+      - dependencies
+      - cargo
