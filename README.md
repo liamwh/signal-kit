@@ -170,6 +170,21 @@ Or set `SIGNAL_KIT_STRUCTURED_LOGGING=true`.
 
 If no OTLP endpoint is set, exporters are skipped — you get local stdout logging with no network dependency. Perfect for development and tests.
 
+## Supply chain & security
+
+signal-kit is **published to crates.io** via release-plz. Each release also ships a packaged `.crate`, CycloneDX SBOMs, SHA-256 checksums, and GitHub build-provenance + SBOM attestations as GitHub Release assets. Dependencies are gated by `cargo-deny` (policy) and scanned with `cargo-audit` (RustSec) on every PR and at release time.
+
+Run the checks locally:
+
+```sh
+just security          # cargo-deny + cargo-audit gate
+just test-supply-chain # release-identity / SBOM / gate self-tests
+just sbom              # generate the canonical CycloneDX SBOM
+just sbom-validate     # validate it against the CycloneDX schema
+```
+
+See [SECURITY.md](SECURITY.md) for the full policy, exact release identity, SBOM scope, advisory policy, crates.io publishing, required branch check, and how to verify checksums, build provenance, and SBOM attestations.
+
 ## License
 
 MIT OR Apache-2.0
