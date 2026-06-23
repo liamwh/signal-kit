@@ -129,6 +129,17 @@ jobs:
         shell: bash
         run: bash scripts/selftest.sh
 
+      # Regression guard: each standalone metric feature must compile on its own
+      # (catches feature-gating bugs like the process/sysinfo-dep issue, where a
+      # feature enabled a module that used an undeclared optional dependency).
+      - name: Feature-isolation check (standalone features build alone)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check -p signal-kit --no-default-features --locked
+          cargo check -p signal-kit --no-default-features --locked --features system
+          cargo check -p signal-kit --no-default-features --locked --features process
+
       # Fail the scan job on policy/vulnerability findings, AFTER the SARIF files
       # are generated above (so the upload steps below still surface the findings).
       # The deny/audit steps capture their exit code and exit 0 so SARIF upload +
