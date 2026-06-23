@@ -36,7 +36,7 @@ opentelemetry-semantic-conventions = { version = "~0.31", features = [
 ] }
 opentelemetry-stdout = { version = "~0.31", features = ["trace", "metrics"] }
 parking_lot = { version = "^0.12" }
-sysinfo = "^0.34.2"
+sysinfo = "^0.39"
 test-log = "^0.2"
 tokio = "^1"
 tower = "^0.5.2"
