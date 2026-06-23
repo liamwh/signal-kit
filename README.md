@@ -183,7 +183,7 @@ just sbom              # generate the canonical CycloneDX SBOM
 just sbom-validate     # validate it against the CycloneDX schema
 ```
 
-See [SECURITY.md](SECURITY.md) for the full policy, exact release identity, SBOM scope, advisory policy, crates.io publishing, required branch check, and how to verify checksums, build provenance, and SBOM attestations.
+See [SECURITY.md](SECURITY.md) for the full policy, exact release identity, SBOM scope, advisory policy, crates.io publishing, required branch check, and how to verify checksums, build provenance, and SBOM attestations. Maintainers should also see [docs/MAINTAINERS.md](docs/MAINTAINERS.md) for release-operation and recovery procedures.
 
 ## License
 
