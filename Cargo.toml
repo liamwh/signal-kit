@@ -31,7 +31,7 @@ opentelemetry_sdk = { version = "~0.31", features = [
     "experimental_metrics_periodicreader_with_async_runtime",
     "experimental_logs_batch_log_processor_with_async_runtime",
 ] }
-opentelemetry-semantic-conventions = { version = "~0.31", features = [
+opentelemetry-semantic-conventions = { version = "~0.32", features = [
     "semconv_experimental",
 ] }
 opentelemetry-stdout = { version = "~0.31", features = ["trace", "metrics"] }
