@@ -44,7 +44,7 @@ tracing = { version = "~0.1", features = ["log"] }
 tracing-appender = { version = "^0.2" }
 tracing-core = { version = "^0.1"}
 tracing-error = "^0.2"
-tracing-opentelemetry = "^0.32"  # NOTE: as of 12/18/25, this should be 0.1.0 versions ahead of other opentelemetry crate versions
+tracing-opentelemetry = "^0.33"  # NOTE: as of 12/18/25, this should be 0.1.0 versions ahead of other opentelemetry crate versions
 tracing-subscriber = { version = "~0.3", features = ["registry", "smallvec", "tracing-log", "ansi", "env-filter", "fmt", "json"] }
 ulid = { version = "^1", features = ["serde"] }
 serde = { version = "^1", features = ["derive"] }
