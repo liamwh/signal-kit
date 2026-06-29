@@ -13,7 +13,7 @@ heck = { version = "^0.5" }
 http = "^1"
 http-body = "^1"
 # OpenTelemetry crates use ~ versions to allow for patch version changes instead of ^ versions which allow for minor version changes
-opentelemetry = { version = "~0.31", features = [
+opentelemetry = { version = "~0.32", features = [
     "logs",
     "trace",
     "metrics",
