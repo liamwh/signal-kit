@@ -20,7 +20,7 @@ opentelemetry = { version = "~0.31", features = [
     "tracing",
 ] }
 tempfile = { version = "3" }
-opentelemetry-appender-tracing = { version = "~0.31" }
+opentelemetry-appender-tracing = { version = "~0.32" }
 opentelemetry-otlp = { version = "~0.31", default-features = false, features = ["tokio"] }
 opentelemetry_sdk = { version = "~0.31", features = [
     "rt-tokio",
