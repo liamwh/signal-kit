@@ -39,7 +39,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-signal-kit = { path = "path/to/signal-kit" }
+signal-kit = "0.1"
 ```
 
 Then in `main`:
