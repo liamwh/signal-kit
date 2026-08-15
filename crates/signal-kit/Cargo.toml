@@ -59,6 +59,7 @@ tls-webpki-roots = ["opentelemetry-otlp/tls-webpki-roots"]
 [dev-dependencies]
 axum = { workspace = true }
 test-log = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tempfile = { workspace = true}
 
 [lints]

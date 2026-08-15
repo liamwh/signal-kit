@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="#quick-start">Quick Start</a> · <a href="#configuration">Configuration</a> · <a href="#features">Features</a> · <a href="#examples">Examples</a>
+  <a href="#quick-start">Quick Start</a> · <a href="#your-tracing-code-doesnt-change">Drop-in</a> · <a href="#configuration">Configuration</a> · <a href="#features">Features</a> · <a href="#examples">Examples</a>
 </p>
 
 ---
@@ -57,6 +57,33 @@ Set the OTLP endpoint and you're exporting:
 ```sh
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 ```
+
+## Your `tracing` code doesn't change
+
+signal-kit never wraps or replaces the `tracing` facade. It installs a process-global subscriber — a standard `tracing-subscriber` registry with one OpenTelemetry layer per signal — and every call site keeps working exactly as before:
+
+- `tracing::info!`, `tracing::error!`, … with structured fields
+- `#[tracing::instrument]` and explicit spans (`info_span!`, `Instrument::instrument`)
+- Metric events: fields named `counter.*`, `gauge.*`, `histogram.*`, or `monotonic_counter.*` become OpenTelemetry metrics, so even metrics can stay `tracing`-native (`with_metrics_callback` for raw OTel instruments is optional)
+- Any dependency crate that already emits `tracing` events — it lights up automatically, because the subscriber is global
+
+There's nothing to re-export, no signal-kit macros, and no wrappers — `tracing` crates see the plain `tracing` API they were compiled against.
+
+The one constraint: signal-kit owns the global subscriber. Initialise it once at the top of `main`, before anything else sets a default — `init`/`try_init` returns [`SubscriberAlreadyInitialised`](https://docs.rs/signal-kit/latest/signal_kit/enum.OtelInitError.html#variant.SubscriberAlreadyInitialised) otherwise.
+
+Proof by example — [`examples/tracing-facade-unchanged.rs`](crates/signal-kit/examples/tracing-facade-unchanged.rs) is written exactly as it would be without signal-kit: every span, event, and metric comes from the plain `tracing` crate (including the `payment_service` module standing in for a signal-kit-unaware dependency), and the only signal-kit call is a single `init`:
+
+```sh
+cargo run -p signal-kit --example tracing-facade-unchanged
+```
+
+```text
+2026-08-14T08:36:13.426023Z  INFO checkout{user="u-123"}: tracing_facade_unchanged: starting checkout
+2026-08-14T08:36:13.426065Z  INFO checkout{user="u-123"}:charge{order_id=42}: tracing_facade_unchanged::payment_service: charging card amount_cents=2500
+2026-08-14T08:36:13.426087Z  INFO checkout{user="u-123"}:charge{order_id=42}:gateway_call: tracing_facade_unchanged::payment_service: gateway approved
+```
+
+Run it with `OTEL_EXPORTER_OTLP_ENDPOINT` set and the same untouched calls export via OTLP instead — spans pick up trace IDs (`trace_id=…` appears in the output), and metric events flow to the collector.
 
 ## Configuration
 
