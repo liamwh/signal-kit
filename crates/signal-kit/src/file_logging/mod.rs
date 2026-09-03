@@ -31,6 +31,13 @@ pub enum FileLoggingError {
     /// IO error occurred during file logging operations.
     #[error("IO error: {0}")]
     Io(#[from] io::Error),
+
+    /// File logging was enabled in configuration, but the `file-logging`
+    /// cargo feature is not compiled into this build of signal-kit.
+    #[error(
+        "file logging was enabled in FileLoggingConfig, but the `file-logging` cargo feature is not enabled for signal-kit; add `features = [\"file-logging\"]` to the signal-kit dependency"
+    )]
+    FeatureDisabled,
 }
 
 /// Builds a file logging writer and guard.
