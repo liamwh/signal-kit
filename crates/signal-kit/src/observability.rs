@@ -313,6 +313,20 @@ impl ObservabilityBuilder {
             return Err(OtelInitError::SubscriberAlreadyInitialised);
         }
 
+        // Fail fast when file logging is requested but the `file-logging`
+        // cargo feature is not compiled in. Silently dropping the enabled
+        // configuration would lose logs without any observable signal.
+        #[cfg(not(feature = "file-logging"))]
+        if self
+            .file_logging_config
+            .as_ref()
+            .is_some_and(|config| config.enabled)
+        {
+            return Err(OtelInitError::FileLogging(
+                crate::file_logging::FileLoggingError::FeatureDisabled,
+            ));
+        }
+
         let service_name = ServiceName::try_from(self.service_name.unwrap_or_default())?;
         let traces_endpoint = crate::get_otlp_endpoint("traces");
         let metrics_endpoint = crate::get_otlp_endpoint("metrics");
@@ -572,5 +586,27 @@ mod test {
         assert_eq!(builder.additional_attributes.len(), 2);
         assert_eq!(builder.additional_attributes[0].key.as_str(), "version");
         assert_eq!(builder.additional_attributes[1].key.as_str(), "environment");
+    }
+
+    #[cfg(not(feature = "file-logging"))]
+    #[test]
+    fn init_fails_when_file_logging_enabled_without_feature() {
+        let config = crate::FileLoggingConfig::builder()
+            .enabled(true)
+            .file_path("/tmp/signal-kit-file-logging-feature-test.log")
+            .build()
+            .unwrap();
+
+        let result = ObservabilityBuilder::new("test-service")
+            .with_file_logging(config)
+            .init();
+
+        match result {
+            Err(super::OtelInitError::FileLogging(crate::FileLoggingError::FeatureDisabled)) => {}
+            Err(other) => panic!("expected FeatureDisabled, got: {other:?}"),
+            Ok(_) => panic!(
+                "init must fail when file logging is enabled but the file-logging feature is absent"
+            ),
+        }
     }
 }
