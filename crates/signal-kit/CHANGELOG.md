@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0](https://github.com/liamwh/signal-kit/compare/v0.1.1...v0.2.0) - 2026-09-04
+
+### Fixed
+
+- *(observability)* fail fast when file logging is enabled without the file-logging feature ([#35](https://github.com/liamwh/signal-kit/pull/35))
+
+### Other
+
+- *(readme)* clarify tracing facade stays untouched ([#33](https://github.com/liamwh/signal-kit/pull/33))
+
 ## [0.1.1](https://github.com/liamwh/signal-kit/compare/v0.1.0...v0.1.1) - 2026-06-23
 
 ### Fixed
