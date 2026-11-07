@@ -25,16 +25,11 @@ pub(crate) fn current_trace_id() -> String {
     }
 }
 
-// Construct TracerProvider for OpenTelemetryLayer
-#[allow(dead_code)]
-pub(crate) fn init_tracer_provider(service_name: &str) -> SdkTracerProvider {
-    init_tracer_provider_with_attributes(service_name, &[])
-}
-
 // Construct TracerProvider for OpenTelemetryLayer with additional resource attributes
 pub(crate) fn init_tracer_provider_with_attributes(
     service_name: &str,
     additional_attributes: &[opentelemetry::KeyValue],
+    otel_runtime: &crate::otel_runtime::SignalKitOtelRuntime,
 ) -> SdkTracerProvider {
     let mut builder = SdkTracerProvider::builder()
         .with_sampler(Sampler::AlwaysOn)
@@ -45,13 +40,20 @@ pub(crate) fn init_tracer_provider_with_attributes(
         ));
 
     // Check if OTLP endpoint is configured for traces
-    #[cfg(feature = "traces")]
-    if let Some(_endpoint) = crate::get_otlp_endpoint("traces") {
-        let exporter = opentelemetry_otlp::SpanExporter::builder()
-            .with_tonic()
-            .build()
-            .expect("Failed to build OTLP trace exporter");
-        builder = builder.with_batch_exporter(exporter);
+    #[cfg(all(
+        feature = "traces",
+        any(feature = "grpc-tonic", feature = "http-proto", feature = "http-json")
+    ))]
+    if crate::get_otlp_endpoint("traces").is_some() {
+        let exporter =
+            crate::transport::span_exporter::build(crate::resolve_otlp_transport("traces"));
+        let batch_processor =
+            opentelemetry_sdk::trace::span_processor_with_async_runtime::BatchSpanProcessor::builder(
+                exporter,
+                otel_runtime.clone(),
+            )
+            .build();
+        builder = builder.with_span_processor(batch_processor);
     }
 
     builder.build()

@@ -22,9 +22,10 @@ opentelemetry-otlp = { workspace = true, default-features = false, features = ["
 opentelemetry-semantic-conventions = { workspace = true }
 parking_lot = { workspace = true }
 sysinfo = { workspace = true, optional = true }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "time", "sync"] }
 tower = { workspace = true, optional = true }
 tracing = { workspace = true }
+tokio-stream = { version = "0.1", features = ["sync"] }
 tracing-appender = { workspace = true, optional = true }
 tracing-core = { workspace = true }
 tracing-opentelemetry = { workspace = true }
@@ -52,6 +53,13 @@ process = ["dep:sysinfo"]
 http = ["dep:tower", "dep:http", "dep:http-body"]
 grpc-tonic = ["opentelemetry-otlp/grpc-tonic"]
 http-proto = ["opentelemetry-otlp/http-proto"]
+http-json = ["opentelemetry-otlp/http-json"]
+# HTTP transports need an HTTP client; each passthrough picks one provided by
+# opentelemetry-otlp so consumers never inherit an unwanted TLS stack.
+reqwest-client = ["opentelemetry-otlp/reqwest-client"]
+reqwest-blocking-client = ["opentelemetry-otlp/reqwest-blocking-client"]
+reqwest-rustls-webpki-roots = ["opentelemetry-otlp/reqwest-rustls-webpki-roots"]
+hyper-client = ["opentelemetry-otlp/hyper-client"]
 tls = ["opentelemetry-otlp/tls"]
 tls-roots = ["opentelemetry-otlp/tls-roots"]
 tls-webpki-roots = ["opentelemetry-otlp/tls-webpki-roots"]
@@ -61,6 +69,9 @@ axum = { workspace = true }
 test-log = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tempfile = { workspace = true}
+opentelemetry-proto = { version = "~0.31", features = ["trace", "gen-tonic-messages"] }
+prost = "0.14"
+serde_json = { workspace = true }
 
 [lints]
 workspace = true

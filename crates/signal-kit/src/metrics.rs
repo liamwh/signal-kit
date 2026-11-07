@@ -25,7 +25,7 @@ pub mod http_metric_layer;
 pub use http_metric_layer::*;
 
 use opentelemetry::global;
-use opentelemetry_sdk::metrics::{MeterProviderBuilder, PeriodicReader, SdkMeterProvider};
+use opentelemetry_sdk::metrics::{MeterProviderBuilder, SdkMeterProvider};
 
 use super::observability::{MetricsInitCallback, MetricsInitContext, MetricsInitError};
 
@@ -33,21 +33,26 @@ use super::observability::{MetricsInitCallback, MetricsInitContext, MetricsInitE
 pub(crate) fn init_meter_provider_with_callbacks(
     service_name: &str,
     metrics_init_callbacks: Vec<MetricsInitCallback>,
+    otel_runtime: &crate::otel_runtime::SignalKitOtelRuntime,
 ) -> Result<SdkMeterProvider, MetricsInitError> {
     let mut meter_provider = MeterProviderBuilder::default().with_resource(resource(service_name));
 
     let export_enabled = crate::get_otlp_endpoint("metrics").is_some();
 
     // Check if OTLP endpoint is configured for metrics
-    #[cfg(feature = "metrics")]
+    #[cfg(all(
+        feature = "metrics",
+        any(feature = "grpc-tonic", feature = "http-proto", feature = "http-json")
+    ))]
     if export_enabled {
-        let exporter = opentelemetry_otlp::MetricExporter::builder()
-            .with_tonic()
-            .with_temporality(opentelemetry_sdk::metrics::Temporality::default())
-            .build()
-            .expect("Failed to build OTLP metric exporter");
+        let exporter =
+            crate::transport::metric_exporter::build(crate::resolve_otlp_transport("metrics"));
 
-        let reader = PeriodicReader::builder(exporter)
+        let reader =
+            opentelemetry_sdk::metrics::periodic_reader_with_async_runtime::PeriodicReader::builder(
+                exporter,
+                otel_runtime.clone(),
+            )
             .with_interval(OBSERVABILITY_EXPORT_INTERVAL)
             .build();
 

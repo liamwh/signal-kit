@@ -107,6 +107,9 @@ pub enum OtelInitError {
     /// File logging configuration or setup failed.
     #[error("file logging configuration failed")]
     FileLogging(#[from] crate::file_logging::FileLoggingError),
+    /// Failed to start the dedicated OTLP export runtime.
+    #[error("failed to start the dedicated OTLP export runtime: {0}")]
+    ExportRuntime(String),
     /// Metrics initialization failed.
     #[error("metrics initialisation failed")]
     Metrics(#[from] MetricsInitError),
@@ -370,13 +373,24 @@ impl ObservabilityBuilder {
             warnings,
         };
 
+        let export_runtime =
+            crate::otel_runtime::SignalKitOtelExportRuntime::new().map_err(|error| {
+                OtelInitError::ExportRuntime(error.to_string())
+            })?;
+        let otel_runtime = export_runtime.adapter();
+
         let tracer_provider = init_tracer_provider_with_attributes(
             service_name.as_str(),
             &self.additional_attributes,
+            &otel_runtime,
         );
-        let meter_provider =
-            init_meter_provider_with_callbacks(service_name.as_str(), self.metrics_callbacks)?;
-        let logger_provider = crate::logs::init_logging_provider(service_name.as_str());
+        let meter_provider = init_meter_provider_with_callbacks(
+            service_name.as_str(),
+            self.metrics_callbacks,
+            &otel_runtime,
+        )?;
+        let logger_provider =
+            crate::logs::init_logging_provider(service_name.as_str(), &otel_runtime);
 
         let tracer = tracer_provider.tracer(env!("CARGO_PKG_NAME"));
         let tracing_otlp_layer = OpenTelemetryLayer::new(tracer);
@@ -451,6 +465,7 @@ impl ObservabilityBuilder {
                 tracer_provider,
                 meter_provider,
                 logger_provider,
+                _export_runtime: export_runtime,
                 _file_guard: file_guard,
             }),
             summary,
@@ -505,6 +520,9 @@ struct OtelGuardInner {
     tracer_provider: SdkTracerProvider,
     meter_provider: SdkMeterProvider,
     logger_provider: SdkLoggerProvider,
+    /// Dedicated Tokio runtime driving every OTLP exporter; dropping it would
+    /// strand in-flight exports, so it lives as long as the guard.
+    _export_runtime: crate::otel_runtime::SignalKitOtelExportRuntime,
     #[cfg(feature = "file-logging")]
     _file_guard: Option<tracing_appender::non_blocking::WorkerGuard>,
     #[cfg(not(feature = "file-logging"))]

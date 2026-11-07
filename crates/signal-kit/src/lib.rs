@@ -57,6 +57,10 @@ pub mod metrics;
 mod traces;
 pub use traces::otel_resource_attributes::build_resource;
 
+mod otel_runtime;
+mod transport;
+pub use transport::{OtlpTransport, resolve_otlp_transport};
+
 mod logs;
 
 pub mod file_logging;
