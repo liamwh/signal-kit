@@ -79,12 +79,8 @@ unmaintained = "all"
 # Named, documented exceptions only. Each entry MUST carry a reason, an owner,
 # and an expiry. There are none today; the template below shows the format.
 ignore = [
-    # {
-    #     id = "RUSTSEC-0000-0000",
-    #     reason = "Why this advisory is acceptable for signal-kit right now.",
-    #     owner  = "@liamwh",
-    #     expiry = "2026-12-31",   # YYYY-MM-DD — re-evaluate on or before this date
-    # },
+    # owner = "@liamwh", expiry = "2027-05-01" — re-evaluate on or before this date.
+    { id = "RUSTSEC-2026-0441", reason = "pin-utils 0.1.0 is unmaintained (repository archived 2026-10-01) but reaches the graph only as a transitive dependency of hyper 1.x / futures-util; no vulnerability exists and no maintained replacement is published that hyper depends on yet. Re-evaluate when hyper drops pin-utils or a patched release is cut." },
 ]
 
 # ---------------------------------------------------------------------------

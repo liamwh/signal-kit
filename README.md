@@ -95,11 +95,25 @@ Everything is optional. Set `OTEL_EXPORTER_OTLP_ENDPOINT` to enable export; leav
 
 | Variable | Purpose |
 |---|---|
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | General OTLP endpoint |
-| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Traces-specific endpoint (overrides general) |
-| `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` | Metrics-specific endpoint (overrides general) |
-| `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` | Logs-specific endpoint (overrides general) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | General OTLP endpoint (base URL; the signal path is appended automatically) |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Traces-specific endpoint (full URL, overrides general) |
+| `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` | Metrics-specific endpoint (full URL, overrides general) |
+| `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` | Logs-specific endpoint (full URL, overrides general) |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | Transport for every signal: `grpc`, `http/protobuf` or `http/json` |
+| `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL` | Traces-specific transport (overrides general) |
 | `RUST_LOG` | Log level filter (defaults to `info`) |
+
+Transport selection follows the OpenTelemetry specification: when no protocol
+variable is set, signal-kit uses gRPC whenever the `grpc-tonic` feature is
+compiled (the historical default), otherwise the available HTTP protocol
+feature. HTTP transports additionally need one HTTP client feature (`reqwest-client`,
+`reqwest-blocking-client`, `reqwest-rustls-webpki-roots` or `hyper-client`).
+Unsupported combinations — a protocol whose feature was not compiled in — fail
+at initialisation with a message naming the missing feature.
+
+Exporters run on a dedicated internal Tokio runtime, so initialisation works
+from any host context (async services, Tauri setup hooks, test harnesses) and
+`OtelGuard::shutdown` flushes every signal before the process exits.
 
 Crate-specific variables are namespaced under `SIGNAL_KIT_`:
 
@@ -130,8 +144,13 @@ Default features: `traces`, `metrics`, `fmt`, `grpc-tonic`, `tls-roots`.
 | `system` | System-level metrics (CPU, memory, disk, network) |
 | `process` | Process-level metrics |
 | `http` | HTTP request metrics with Tower middleware |
-| `grpc-tonic` | gRPC transport via tonic (default) |
-| `http-proto` | HTTP/protobuf transport |
+| `grpc-tonic` | gRPC transport via tonic (default transport) |
+| `http-proto` | OTLP/HTTP transport with protobuf payloads |
+| `http-json` | OTLP/HTTP transport with JSON payloads |
+| `reqwest-client` | reqwest HTTP client for the HTTP transports (native TLS) |
+| `reqwest-blocking-client` | Blocking reqwest HTTP client |
+| `reqwest-rustls-webpki-roots` | reqwest HTTP client with rustls + WebPKI roots |
+| `hyper-client` | hyper HTTP client |
 | `tls` | TLS support |
 | `tls-roots` | Native TLS root certificates (default) |
 | `tls-webpki-roots` | WebPKI root certificates |
