@@ -18,6 +18,20 @@ static HTTP_SERVER_ACTIVE_REQUESTS_UP_DOWN_COUNTER: OnceLock<UpDownCounter<i64>>
 static HTTP_SERVER_REQUEST_BODY_SIZE_HISTOGRAM: OnceLock<Histogram<u64>> = OnceLock::new();
 static HTTP_SERVER_RESPONSE_BODY_SIZE_HISTOGRAM: OnceLock<Histogram<u64>> = OnceLock::new();
 
+// Explicit bucket boundaries. The OpenTelemetry Rust SDK's default explicit
+// boundaries (0, 5, 10, 25, ..., 10000) are millisecond-scale; recording
+// second-valued durations into them puts every request in the (0, 5] bucket,
+// so histogram_quantile(0.95) is pinned at 0.95 * 5 = 4.75 regardless of
+// real latency (found as the permanently-firing p95 alert, 2026-11-08).
+pub(crate) const HTTP_SERVER_REQUEST_DURATION_BOUNDARIES: [f64; 11] = [
+    0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0,
+];
+
+// Byte-scale boundaries for body sizes (SDK defaults are ms-scale too).
+pub(crate) const HTTP_SERVER_BODY_SIZE_BOUNDARIES: [f64; 6] = [
+    1024.0, 10240.0, 102400.0, 1048576.0, 10485760.0, 104857600.0,
+];
+
 /// Initialize the HTTP server metrics.
 ///
 /// # Parameters
@@ -28,6 +42,7 @@ pub fn init_http_server_metrics(meter: &Meter) {
             .f64_histogram(HTTP_SERVER_REQUEST_DURATION)
             .with_description("Duration of HTTP server requests.")
             .with_unit("s")
+            .with_boundaries(HTTP_SERVER_REQUEST_DURATION_BOUNDARIES.to_vec())
             .build()
     });
 
@@ -44,6 +59,7 @@ pub fn init_http_server_metrics(meter: &Meter) {
             .u64_histogram(HTTP_SERVER_REQUEST_BODY_SIZE)
             .with_description("Size of HTTP server request bodies.")
             .with_unit("By")
+            .with_boundaries(HTTP_SERVER_BODY_SIZE_BOUNDARIES.to_vec())
             .build()
     });
 
@@ -52,6 +68,7 @@ pub fn init_http_server_metrics(meter: &Meter) {
             .u64_histogram(HTTP_SERVER_RESPONSE_BODY_SIZE)
             .with_description("Size of HTTP server response bodies.")
             .with_unit("By")
+            .with_boundaries(HTTP_SERVER_BODY_SIZE_BOUNDARIES.to_vec())
             .build()
     });
 }
@@ -280,4 +297,41 @@ pub fn record_http_server_response_body_size(
     }
 
     histogram.record(size_bytes, &attrs);
+}
+
+#[cfg(test)]
+mod bucket_boundary_tests {
+    use super::*;
+
+    #[test]
+    fn duration_boundaries_are_second_scale_and_sorted() {
+        let b = HTTP_SERVER_REQUEST_DURATION_BOUNDARIES;
+        assert!(
+            b.windows(2).all(|w| w[0] < w[1]),
+            "boundaries must be strictly increasing"
+        );
+        // Regression (2026-11-08): SDK defaults are 0,5,10,...,10000 (ms-scale);
+        // seconds-valued durations collapsed into the (0,5] bucket and pinned
+        // histogram_quantile(0.95) at 4.75 for every traffic shape.
+        assert!(b[0] <= 0.005, "sub-10ms requests need their own buckets");
+        assert!(
+            b.iter().filter(|&&x| x < 1.0).count() >= 5,
+            "sub-second resolution is required"
+        );
+        assert!(
+            b.iter().any(|&x| x > 3.0),
+            "a boundary must sit above the 3s p95 alert threshold"
+        );
+    }
+
+    #[test]
+    fn body_size_boundaries_are_byte_scale_and_sorted() {
+        let b = HTTP_SERVER_BODY_SIZE_BOUNDARIES;
+        assert!(b.windows(2).all(|w| w[0] < w[1]));
+        assert!(b[0] <= 1024.0, "KiB-scale bodies need their own buckets");
+        assert!(
+            b.iter().any(|&x| x >= 104857600.0),
+            "must distinguish bodies up to at least 100 MiB"
+        );
+    }
 }
